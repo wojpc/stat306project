@@ -4,16 +4,89 @@ format: html
 editor: visual
 ---
 
-## Quarto
+## Introduction
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+The analysis utilizes the **GBSG breast cancer dataset** in Royston and Altman (2013) to analyze the relationship between progresterone receptor levels (pgr), patient age, and tumor size at the time of surgery. The document is organized into the following:
 
-## Running Code
+-   Data Cleaning
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+-   Exploratory Data Analysis (EDA)
+
+-   Linear Regression Analysis
+
+-   Hypothesis Testing
+
+-   Principal component analysis
+
+## 1. Data Cleaning
+
+Although the given data is complete (no missing value), some adjustments are .
 
 ```{r}
-1 + 1
+# Load required libraries
+library(dplyr)
+```
+
+```{r}
+# Load dataset
+breast_cancer <- read.csv("data/gbsg.csv")
+head(breast_cancer)
+```
+
+```{r}
+# Remove the row index column (first column)
+breast_cancer <- breast_cancer[,-1]
+head(breast_cancer)
+```
+
+```{r}
+# Find the data dimension
+dim(breast_cancer)
+```
+
+```{r}
+# Find variable name & type
+str(breast_cancer)
+```
+
+Since all the variables are integer and some of them appears to be a binary variable, let's switch it to a factor type.
+
+```{r}
+# Adjust variable type for categorical variable
+breast_cancer$meno <- as.factor(breast_cancer$meno)
+breast_cancer$grade <- as.factor(breast_cancer$grade)
+breast_cancer$hormon <- as.factor(breast_cancer$hormon)
+breast_cancer$status <- as.factor(breast_cancer$status)
+# Check the variable type
+str(breast_cancer)
+```
+
+```{r}
+# Find the number of missing values for each variable in the dataset
+missing_val_count <- colSums(is.na(breast_cancer))
+missing_val <- data.frame(missing_val_count) %>%
+    mutate(percentage = round(missing_val_count/nrow(breast_cancer) * 100,2))
+missing_val
+```
+
+```{r}
+# Find class imbalance for categorical variable
+meno <- breast_cancer |>
+  group_by(meno) |>
+  summarize(total = n())
+meno
+grade <- breast_cancer |>
+  group_by(grade) |>
+  summarize(total = n())
+grade
+hormon <- breast_cancer |>
+  group_by(hormon) |>
+  summarize(total = n())
+hormon
+status <- breast_cancer |>
+  group_by(status) |>
+  summarize(total = n())
+status
 ```
 
 You can add options to executable code like this
@@ -24,3 +97,9 @@ You can add options to executable code like this
 ```
 
 The `echo: false` option disables the printing of code (only output is displayed).
+
+## 3. Linear Regression Analysis
+
+```{r}
+
+```
