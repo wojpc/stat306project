@@ -271,6 +271,21 @@ model2_add_1 <- lm(log(size) ~ age_category * log(pgr+1) + nodes, breast_cancer)
 summary(model2_add_1)
 model2_add_2 <- lm(log(size) ~ age_category * log(pgr+1) * nodes + grade, breast_cancer)
 summary(model2_add_2)
+
+# Stepwise Selection
+full_model <- lm(size ~ ., data = breast_cancer)
+best_model <- step(full_model, direction = "both")
+summary(best_model)
+plot(lm(size ~ nodes + er, data = breast_cancer), which = 1)
+
+full_model2 <- lm(log(size) ~ ., data = breast_cancer)
+best_model2 <- step(full_model2, direction = "both")
+summary(best_model2)
+plot(best_model2, which = 1)
+fit_final <- lm(log(size) ~ nodes + grade + er, data = breast_cancer)
+plot(fit_final$fitted.values, fit_final$residuals)
+summary(fit_final)
+
 ```
 
 ```{r}
@@ -329,14 +344,22 @@ Since all the values are close to 1, this indicate almost zero multicollinearity
 ```{r}
 fit1 <- lm(log(size) ~ age_category * log(pgr+1) + nodes + grade, breast_cancer)
 summary(fit1)
+# QQ plot
+plot(fit1, which = 2)
+# Cook's distance
 plot(fit1, which = 4)
 plot(fit1, which = 5) 
 # Heteroscedasticity check
 plot(fit1$fitted.values, fit1$residuals, xlab="Fitted value", ylab="Residual")
 confint(fit1)
+# Multicollinearity
+vif(fit1)
 
 fit2 <- lm(log(size) ~ age_category * log(pgr+1) * nodes + grade, breast_cancer)
 summary(fit2)
+# QQ plot
+plot(fit2, which = 2)
+# Heteroscedasticiy check
 plot(fit2$fitted.values, fit2$residuals, xlab="Fitted value", ylab="Residual")
 
 ```
