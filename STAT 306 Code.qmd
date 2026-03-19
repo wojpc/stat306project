@@ -20,11 +20,11 @@ The analysis utilizes the **GBSG breast cancer dataset** in Royston and Altman (
 
 ## 1. Data Cleaning
 
-Although the given data is complete (no missing value), some adjustments are .
-
 ```{r}
 # Load required libraries
 library(dplyr)
+library(ggplot2)
+library(GGally)
 ```
 
 ```{r}
@@ -34,29 +34,35 @@ head(breast_cancer)
 ```
 
 ```{r}
-# Remove the row index column (first column)
-breast_cancer <- breast_cancer[,-1]
-head(breast_cancer)
-```
-
-```{r}
 # Find the data dimension
 dim(breast_cancer)
 ```
 
+The data consists of 686 observations.
+
 ```{r}
-# Find variable name & type
-str(breast_cancer)
+# Verify patient id uniqueness
+pid <- breast_cancer |>
+  summarize(total = length(unique(pid)))
+pid
 ```
 
-Since all the variables are integer and some of them appears to be a binary variable, let's switch it to a factor type.
+```{r}
+# Remove the row index column (first column) and non-baseline variables
+breast_cancer <- breast_cancer[,-1] |>
+  select(-hormon,-rfstime,-status, -pid)
+head(breast_cancer)
+```
+
+```{r}
+# Find the variable name & types
+str(breast_cancer)
+```
 
 ```{r}
 # Adjust variable type for categorical variable
 breast_cancer$meno <- as.factor(breast_cancer$meno)
 breast_cancer$grade <- as.factor(breast_cancer$grade)
-breast_cancer$hormon <- as.factor(breast_cancer$hormon)
-breast_cancer$status <- as.factor(breast_cancer$status)
 # Check the variable type
 str(breast_cancer)
 ```
@@ -70,7 +76,7 @@ missing_val
 ```
 
 ```{r}
-# Find class imbalance for categorical variable
+# Verify class imbalances for categorical variables
 meno <- breast_cancer |>
   group_by(meno) |>
   summarize(total = n())
@@ -79,27 +85,48 @@ grade <- breast_cancer |>
   group_by(grade) |>
   summarize(total = n())
 grade
-hormon <- breast_cancer |>
-  group_by(hormon) |>
-  summarize(total = n())
-hormon
-status <- breast_cancer |>
-  group_by(status) |>
-  summarize(total = n())
-status
 ```
 
-You can add options to executable code like this
+## 2. Exploratory Data Analysis (EDA)
 
 ```{r}
-#| echo: false
-2 * 2
+pairs(breast_cancer)
+ggpairs(breast_cancer, axisLabels = "none", progress = FALSE)
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+boxplot(size ~ meno, data = breast_cancer) +
+  labs(title = "Distribution of tumor size based on menopausal status", 
+       x = "menopausal status",
+       y = "tumor size (mm)")
+boxplot(size ~ grade, data = breast_cancer)
+plot(size ~ pgr, data = breast_cancer)
+plot(size ~ er, data = breast_cancer)
+plot(size ~ age, data = breast_cancer)
+plot(size ~ log(nodes), data = breast_cancer)
+
+# Show no linear relationship
+plot(size ~ age, data = breast_cancer)
+# Fix with log(Y)
+plot(log(size) ~ age, data = breast_cancer)
+
+plot(size ~ pgr, data = breast_cancer)
+plot(log(size) ~ log(pgr), data = breast_cancer)
+
+```
 
 ## 3. Linear Regression Analysis
 
 ```{r}
+full_model <- lm(size ~ ., breast_cancer)
+summary(full_model)
+model1 <- lm(size ~ age * pgr, breast_cancer)
+summary(model1)
+model2 <- lm(size ~ age, breast_cancer)
+summary(model2)
 
 ```
+
+\
+
+\
