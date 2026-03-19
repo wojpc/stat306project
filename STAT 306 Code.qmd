@@ -95,38 +95,258 @@ ggpairs(breast_cancer, axisLabels = "none", progress = FALSE)
 ```
 
 ```{r}
-boxplot(size ~ meno, data = breast_cancer) +
-  labs(title = "Distribution of tumor size based on menopausal status", 
-       x = "menopausal status",
-       y = "tumor size (mm)")
-boxplot(size ~ grade, data = breast_cancer)
-plot(size ~ pgr, data = breast_cancer)
-plot(size ~ er, data = breast_cancer)
-plot(size ~ age, data = breast_cancer)
-plot(size ~ log(nodes), data = breast_cancer)
+boxplot(size ~ meno, data = breast_cancer, 
+        xlab = "menopausal status", ylab = "tumor size (mm)",
+        main = "Distribution of tumor size by menopausal status",
+        names = c("pre-menopausal (0)", "post-menopausal (1)"))
+boxplot(size ~ grade, data = breast_cancer,
+        xlab = "tumor grade", ylab = "tumor size (mm)",
+        main = "Distribution of tumor size by grade",
+        names = c("low (1)", "intermediate (2)", "high (3)"))
+plot(size ~ pgr, data = breast_cancer,
+     xlab = "progesterone receptor level (fmol/l)", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by pgr")
+plot(size ~ er, data = breast_cancer,
+     xlab = "esterogen receptor level (fmol/l)", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by er")
+plot(size ~ age, data = breast_cancer,
+     xlab = "age (years)", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by age")
+plot(size ~ nodes, data = breast_cancer,
+     xlab = "number of positive lymph nodes", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by nodes")
+```
 
-# Show no linear relationship
-plot(size ~ age, data = breast_cancer)
-# Fix with log(Y)
-plot(log(size) ~ age, data = breast_cancer)
+**Tumor size vs Menopausal status:**
 
-plot(size ~ pgr, data = breast_cancer)
-plot(log(size) ~ log(pgr), data = breast_cancer)
+-   Medians are nearly identical: menopausal status has little to no impact on average tumor size
+-   Box heights (interquartile range) are almost the same: the typical range of tumor sizes is consistent across both groups
+-   Right-skewed data: both groups have many outliers, group 1 more extreme outliers than group 0.
+-   Solution: log transformation, log(size) –\> Tumor size data was log-transformed to better visualize the variation in smaller tumors that was previously obscured by the right-skewed raw scale.
 
+**Tumor size vs Tumor grade**
+
+-   Median: There's gradual increase in the median tumor size as the grade moves from low to high. Higher grade tumors appear slightly larger on average
+
+-   The boxes get taller as the grade increases, meaning higher-grade tumors are more unpredictable in size compared to low-grade ones
+
+-   Right-skewed data: There are outliers, especially the intermediate grade. Larger tumors exists regardless of the grade.
+
+-   Solution: log transformation, log(size) –\> Tumor size data was log-transformed to better visualize the variation in smaller tumors and stabilize the variance (boxes height roughly equal)
+
+**Tumor size vs pgr**
+
+-   Majority of data points crowded near 0-500 fmol/l: most patients have relatively low pgr levels
+
+-   Weak linear correlations: No obvious line/strong trend. Tumor size varies significantly regardless of whether the pgr level
+
+-   One clear outlier pgr above 2000 fmol/l
+
+-   Solution: use log(pgr + 1) –\> + 1 so that if pgr is 0, ans become log(1) = 0. There's no linear trend, but the pgr level are spread out.
+
+**Tumor size vs er**
+
+-   Downward "wedge" shape
+
+-   Negative correlation: as the ER goes up, maximum tumor size go down
+
+-   Data has dense cluster on the left
+
+-   Solution: use log(er + 1) –\> + 1 so that if er = 0, ans become log(1) = 0. No linear trend visible, data level spread out.
+
+**Tumor size vs age**
+
+-   No visible trend: Mostly horizontal, meaning 30-70 years old have roughly the same average tumor size
+
+-   Most data points clustered between age 40-70. Thickness of the cloud is fairly uniform across them
+
+-   If drawing a line, it would be almost perfectly flat
+
+-   Solution: group age –\>median shows higher for younger (what researchers said), but mean is higher for older bcs of many outliers
+
+**Tumor size vs nodes**
+
+-   Dense cluster at low node counts: Majority of patients have between 0 and 10 positive lymph nodes.
+
+-   Weak positive relationship: number of positive nodes increases, the tumor size tends to be larger, but correlation is not very strong
+
+-   There's one extreme outlier with over 50 positive nodes
+
+-   Solution: group nodes count according to the TNM staging system –\> clear positive correlation (increase \# of nodes, increase in tumor size), larger outliers majority are in N2 and N3.
+
+```{r}
+boxplot(log(size) ~ meno, data = breast_cancer, 
+        xlab = "menopausal status", ylab = "log(tumor size in mm)",
+        main = "Distribution of log(tumor size) by menopausal status",
+        names = c("pre-menopausal (0)", "post-menopausal (1)"))
+boxplot(log(size) ~ grade, data = breast_cancer,
+        xlab = "tumor grade", ylab = "log(tumor size in mm)",
+        main = "Distribution of log(tumor size) by grade",
+        names = c("low (1)", "intermediate (2)", "high (3)"))
+plot(size ~ log(pgr + 1), data = breast_cancer,
+     xlab = "log ((progesterone receptor level in fmol/l) + 1)", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by log(pgr + 1)")
+plot(size ~ log(er + 1), data = breast_cancer,
+     xlab = "log((esterogen receptor level in fmol/l) + 1)", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by log(er + 1)")
+# Group age by category: younger for age < 50 years, older otherwise
+breast_cancer <- breast_cancer |>
+  mutate(age_category = ifelse(breast_cancer$age < 50, "younger", "older"))
+age_cat <- breast_cancer |>
+  group_by(age_category) |>
+  summarise(total = n(), mean = mean(age))
+age_cat
+boxplot(size ~ age_category, data = breast_cancer,
+     xlab = "age (years)", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by age",
+     names = c("older (50 and older)", "younger (<50)"))
+breast_cancer$node_group <- cut(breast_cancer$nodes,
+                               breaks = c(-1, 0, 3, 9, Inf),
+                               labels = c("N0 (0)", "N1 (1-3)", "N2 (4-9)", "N3 (10+)"))
+node_cat <- breast_cancer |>
+  group_by(node_group) |>
+  summarise(total = n())
+node_cat
+# Remove empty category: "N0 (0)"
+breast_cancer$node_group <- droplevels(breast_cancer$node_group)
+boxplot(size ~ node_group, data = breast_cancer,
+     xlab = "number of positive lymph nodes", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by nodes")
+boxplot(log(size) ~ node_group, data = breast_cancer,
+     xlab = "number of positive lymph nodes", ylab = "tumor size (mm)",
+     main = "Distribution of tumor size by nodes")
 ```
 
 ## 3. Linear Regression Analysis
 
 ```{r}
-full_model <- lm(size ~ ., breast_cancer)
+og_model <- lm(size ~ age + meno + grade + nodes + pgr + er, breast_cancer)
+summary(og_model)
+simple_model <- lm(size ~ age_category + log(pgr+1), breast_cancer)
+summary(simple_model)
+# heteroscedasticity
+plot(simple_model$fitted.values, simple_model$residuals, xlab="Fitted value", ylab="Residual")
+
+main_model <- lm(log(size) ~ age_category * log(pgr+1), breast_cancer)
+summary(main_model)
+```
+
+```{r}
+# Test-based model selection method
+# Choose the original variable only
+breast_cancer_og_data <- breast_cancer |>
+  select(-age_category, -node_group)
+# Backward Selection
+full_model <- lm(size ~ ., breast_cancer_og_data)
 summary(full_model)
-model1 <- lm(size ~ age * pgr, breast_cancer)
-summary(model1)
-model2 <- lm(size ~ age, breast_cancer)
-summary(model2)
+# Remove meno, with largest insignificant p-value: 0.819
+model_remove_1 <- lm(size ~ ., breast_cancer_og_data |> select(-meno))
+summary(model_remove_1)
+# Remove grade, with largest insignificant p-value: 0.670 in grade2
+model_remove_2 <- lm(size ~ ., breast_cancer_og_data |> select(-meno, -grade))
+summary(model_remove_2)
+# Remove pgr, with largest insignificant p-value: 0.522
+model_remove_3 <- lm(size ~ ., breast_cancer_og_data |> select(-meno, -grade, -pgr))
+summary(model_remove_3)
+# Remove age with largest insignificant p-value: 0.317
+model_remove_4 <- lm(size ~ ., breast_cancer_og_data |> select(-meno, -grade, -pgr, -age))
+summary(model_remove_4)
+# Remove er with insignificant p-value: 0.061
+model_remove_5 <- lm(size ~ ., breast_cancer_og_data |> select(-meno, -grade, -pgr, -age, -er))
+summary(model_remove_5)
+# Best is the Simple model between size vs nodes
+
+# Forward Selection 1
+basic_model <- lm(size ~ age_category + log(pgr+1), breast_cancer)
+summary(basic_model)
+model_add_1 <- lm(size ~ age_category + log(pgr+1) + nodes, breast_cancer)
+summary(model_add_1)
+model_add_2 <- lm(size ~ age_category + log(pgr+1) + nodes * grade, breast_cancer)
+summary(model_add_2)
+
+# Forward Selection 2
+basic_model2 <- lm(log(size) ~ age_category * log(pgr+1), breast_cancer)
+summary(basic_model2)
+model2_add_1 <- lm(log(size) ~ age_category * log(pgr+1) + nodes, breast_cancer)
+summary(model2_add_1)
+model2_add_2 <- lm(log(size) ~ age_category * log(pgr+1) * nodes + grade, breast_cancer)
+summary(model2_add_2)
+```
+
+```{r}
+# pgr and size relation without age influence
+y_reg = lm(size~pgr, breast_cancer)
+x1_reg = lm(age~pgr, breast_cancer)
+plot(x1_reg$residuals, y_reg$residuals, xlab="x1~x2 residual", ylab="y~x2 residual",
+     main=paste("Partial correlation:", round(cor(y_reg$residuals,x1_reg$residuals),3)))
+
+# age and size relation without pgr influence
+y_reg = lm(size~age, breast_cancer)
+x1_reg = lm(pgr~age, breast_cancer)
+plot(x1_reg$residuals, y_reg$residuals, xlab="x1~x2 residual", ylab="y~x2 residual",
+     main=paste("Partial correlation:", round(cor(y_reg$residuals,x1_reg$residuals),3)))
+
+# age and size relation without nodes influence
+y_reg = lm(size~age, breast_cancer)
+x1_reg = lm(nodes~age, breast_cancer)
+plot(x1_reg$residuals, y_reg$residuals, xlab="x1~x2 residual", ylab="y~x2 residual",
+     main=paste("Partial correlation:", round(cor(y_reg$residuals,x1_reg$residuals),3)))
+
+# age_category and size relation without nodes influence
+y_reg = lm(size~age_category, breast_cancer)
+x1_reg = lm(nodes~age_category, breast_cancer)
+plot(x1_reg$residuals, y_reg$residuals, xlab="x1~x2 residual", ylab="y~x2 residual",
+     main=paste("Partial correlation:", round(cor(y_reg$residuals,x1_reg$residuals),3)))
+
+# pgr and size relation without nodes influence
+y_reg = lm(size~pgr, breast_cancer)
+x1_reg = lm(nodes~pgr, breast_cancer)
+plot(x1_reg$residuals, y_reg$residuals, xlab="x1~x2 residual", ylab="y~x2 residual",
+     main=paste("Partial correlation:", round(cor(y_reg$residuals,x1_reg$residuals),3)))
+```
+
+-   pgr & size w/o age influence: -0.043
+
+-   age & size w/o pgr influence: -0.024
+
+-   age & size w/o nodes influence: 0.33
+
+-   age category & size w/o nodes influence: 0.328
+
+-   pgr & size w/o nodes influence: 0.327
+
+Partial Correlation Summary: Partial corr controlling for nodes revealed moderate positive association of age and tumor size & pgr and tumor size, meaning that nodes was suppressing the relationships.
+
+```{r}
+library(car)
+model <- lm(size ~ ., data = breast_cancer_og_data)
+summary(model)
+vif(model)
+```
+
+Since all the values are close to 1, this indicate almost zero multicollinearity among all the covariates.
+
+```{r}
+fit1 <- lm(log(size) ~ age_category * log(pgr+1) + nodes + grade, breast_cancer)
+summary(fit1)
+plot(fit1, which = 4)
+plot(fit1, which = 5) 
+# Heteroscedasticity check
+plot(fit1$fitted.values, fit1$residuals, xlab="Fitted value", ylab="Residual")
+confint(fit1)
+
+fit2 <- lm(log(size) ~ age_category * log(pgr+1) * nodes + grade, breast_cancer)
+summary(fit2)
+plot(fit2$fitted.values, fit2$residuals, xlab="Fitted value", ylab="Residual")
 
 ```
 
-\
+```{r}
+sum(cooks.distance(fit1) >= 1) # 0 = no outliers
+cooks <- cooks.distance(fit1)
+plot(cooks, type = "h", xlab="Index i", ylab="Cook's")
+# Find the largest spike
+max(cooks)
+```
 
-\
+Based on the baseline, where cook's distance \> 1 indicate influential node, none of the observations in the data is found influential because the largest cook's distance among all the observations is 0.067 which is way below the value 1.\
