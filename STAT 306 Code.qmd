@@ -376,6 +376,128 @@ Based on the baseline, where cook's distance \> 1 indicate influential node, non
 
 ## 4. Hypothesis Testing
 
+**Does age predict progesterone using a linear model after controlling for other variables?**
+
+Test: two tail t-test at 5% significance
+
+$H_0$ : $\beta_{Age} = 0$
+
+$H_A$ : $\beta_{Age} \neq 0$
+
+Since the p-value for the age coefficient is 0.78, we fail to reject the null hypothesis at 5% significance.
+
+```{r}
+summary(lm(log(pgr + 1) ~ age + meno + er + grade + nodes, data = breast_cancer))
+```
+
+**Does age predict tumor size using a linear model after controlling for other variables?**
+
+Test: two tail t-test at 5% significance
+
+$H_0$ : $\beta_{Age} = 0$
+
+$H_A$ : $\beta_{Age} \neq 0$
+
+Since the p-value for the age coefficient is 0.69, we fail to reject the null hypothesis at 5% significance.
+
+```{r}
+summary(lm(size ~ age + meno + er + grade + nodes, data = breast_cancer))
+```
+
+**Does log of the progesterone level predict tumor size using a linear model after controlling for other variables?**
+
+Test: two tail t-test at 5% significance
+
+$H_0$ : $\beta_{log PGR} = 0$
+
+$H_A$ : $\beta_{logPGR} \neq 0$
+
+Since the p-value for the age coefficient is 0.61, we fail to reject the null hypothesis at 5% significance. The regression was repeated without taking the logarithm of pgr and the p-value was still greater than 0.05 as a sanity check.
+
+```{r}
+summary(lm(size ~ log(pgr + 1) + age + meno + er + grade + nodes, data = breast_cancer))
+```
+
+**Does a model without age and log progesterone explain the variation just as well as the full model?**
+
+Test: ANOVA at 5% significance for a nested model
+
+$H_0$ : A model where $\beta_{log PGR} = 0$ and $\beta_{Age} = 0$, explains the variation without adding further parameters.
+
+$H_A$ : A model where $\beta_{logPGR} \neq 0$ and $\beta_{Age} \neq 0$ explains the variation.
+
+Since the p-value for the test is 0.81, we fail to reject the null hypothesis at 5% significance.
+
+```{r}
+fit_simple = lm(size ~ meno + er + grade + nodes, data = breast_cancer)
+fit_all = lm(size ~ log(pgr + 1) + age + meno + er + grade + nodes, data = breast_cancer)
+anova(fit_simple, fit_all)
+```
+
+**Does a model with just number of nodes explain the variation just as well as the full model?**
+
+Test: ANOVA at 5% significance for a nested model
+
+$H_0$ : A model where $\beta_{log PGR} = 0$, $\beta_{Age} = 0$, $\beta_{Meno} = 0$, $\beta_{Er} = 0$, $\beta_{Grade} = 0$ explains the variation without adding further parameters.
+
+$H_A$ : At least one predictor improves the fit of the model.
+
+Since the p-value for the test is 0.34, we fail to reject the null hypothesis at 5% significance.
+
+```{r}
+fit_nodes = lm(size ~ nodes, data = breast_cancer)
+anova(fit_nodes, fit_all)
+```
+
+**Correlation Testing**
+
+Test: t-test for correlation at 5% significance
+
+$H_0$ : $\rho = 0$
+
+$H_A$ : $\rho \neq 0$
+
+There we cannot reject the null hypothesis at 5% significance for all tests except between size and er and between size and nodes. Besides er and number of nodes, from these tests we conclude that the correlation between size and the other covariates is 0 with 5% significance.
+
+```{r}
+# Look at correlation test for size with each covariate including pgr and log(pgr+1)
+cor.test(breast_cancer$size, breast_cancer$age)
+cor.test(breast_cancer$size, breast_cancer$pgr)
+cor.test(breast_cancer$size, log(breast_cancer$pgr + 1))
+cor.test(breast_cancer$size, breast_cancer$er)
+cor.test(breast_cancer$size, breast_cancer$nodes)
+```
+
 ## 5. Principal Component Analysis
 
-By finding the eigenvalues and eigenvectors of the covariance matrix for our quantitative data, we plot our observations along the highest variance components or eigenvectors to determine pakkif there is an unerlying low
+By finding the eigenvalues and eigenvectors of the covariance matrix for our quantitative data, we can plot our observations along the highest variance components to reduce the dimensionality of our data. Loadings for each component can tell us how each variable moves with respect to each other.
+
+```{r}
+# Keep only qunatitative variables
+data_quant <- read.csv("data/gbsg.csv") |>
+  select(c(-X, -pid, , -hormon, -meno, -grade, -rfstime, -status))
+str(read.csv("data/gbsg.csv"))
+# prcomp() will generate our principal components, scale and center the data
+pca <- prcomp(data_quant, scale. = TRUE, center = TRUE)
+summary(pca)
+
+# Scree plot of variances (eigenvalues)
+plot(pca, type = "l", main = "PCA Variance")
+title(xlab = "Component")
+
+# Plot cumulative variance against components
+pca_vars <- cumsum(pca$sdev^2) / sum(pca$sdev^2)
+plot(pca_vars, type = "b", xlab = "Component", ylab = "Cumulative Variance")
+
+# Loading of each variable per component
+pca$rotation[, 1:4]
+
+# Plot component 1 vs component 2
+plot(pca$x[,1], pca$x[,2], xlab = "PC1", ylab = "PC2")
+title(main = "Principal Component 1 vs 2")
+
+# Plot component 3 vs component 4
+plot(pca$x[,3], pca$x[,4], xlab = "PC3", ylab = "PC4")
+title(main = "Principal Component 3 vs 4")
+
+```
