@@ -6,7 +6,7 @@ editor: visual
 
 ## Introduction
 
-The analysis utilizes the **GBSG breast cancer dataset** in Royston and Altman (2013) to analyze the relationship between progresterone receptor levels (pgr), patient age, and tumor size at the time of surgery. The document is organized into the following:
+The analysis utilizes the **GBSG breast cancer dataset** in Royston and Altman (2013) to analyze the relationship between progesterone receptor levels (pgr), patient age, and tumor size at the time of surgery. The document is organized into the following:
 
 -   Data Cleaning
 
@@ -372,4 +372,10 @@ plot(cooks, type = "h", xlab="Index i", ylab="Cook's")
 max(cooks)
 ```
 
-Based on the baseline, where cook's distance \> 1 indicate influential node, none of the observations in the data is found influential because the largest cook's distance among all the observations is 0.067 which is way below the value 1.\
+Based on the baseline, where cook's distance \> 1 indicate influential node, none of the observations in the data is found influential because the largest cook's distance among all the observations is 0.067 which is way below the value 1.
+
+## 4. Hypothesis Testing
+
+## 5. Principal Component Analysis
+
+By finding the eigenvalues and eigenvectors of the covariance matrix for our quantitative data, we plot our observations along the highest variance components or eigenvectors to determine pakkif there is an unerlying low
