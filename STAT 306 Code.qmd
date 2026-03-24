@@ -440,13 +440,43 @@ Test: ANOVA at 5% significance for a nested model
 
 $H_0$ : A model where $\beta_{log PGR} = 0$, $\beta_{Age} = 0$, $\beta_{Meno} = 0$, $\beta_{Er} = 0$, $\beta_{Grade} = 0$ explains the variation without adding further parameters.
 
-$H_A$ : At least one predictor improves the fit of the model.
+$H_A$ : At least one parameter improves the fit of the model.
 
 Since the p-value for the test is 0.34, we fail to reject the null hypothesis at 5% significance.
 
 ```{r}
 fit_nodes = lm(size ~ nodes, data = breast_cancer)
 anova(fit_nodes, fit_all)
+```
+
+**Does a model an intercept model explain the variation just as well as the full model?**
+
+Test: ANOVA at 5% significance for a nested model
+
+$H_0$ : A model where all parameters are zero but the intercept explains the variation.
+
+$H_A$ : At least one parameter improves the fit of the model.
+
+Since the p-value for the test is 1.99e-15 (possibly machine rounding error) \<\< 0.05, we reject the null hypothesis at 5% significance.
+
+```{r}
+fit_intercept = lm(size ~ 1, data = breast_cancer)
+anova(fit_intercept, fit_all)
+```
+
+**Is tumor size different between different groups of menopause sufferers and is tumor size different between grades?**
+
+Test: ANOVA at 5% significance
+
+$H_0$ : Mean tumor size does not differ between groups.
+
+$H_A$ : At least one group's mean tumor size is different.
+
+At 5% significance we cannot reject the null hypothesis for tumor size and menopause status since the p-value is 0.27. However for grade, we reject the null hypothesis at 5% since the p-value is 0.024.
+
+```{r}
+anova(lm(size ~ meno, data = breast_cancer))
+anova(lm(size ~ grade, data = breast_cancer))
 ```
 
 **Correlation Testing**
@@ -457,7 +487,7 @@ $H_0$ : $\rho = 0$
 
 $H_A$ : $\rho \neq 0$
 
-There we cannot reject the null hypothesis at 5% significance for all tests except between size and er and between size and nodes. Besides er and number of nodes, from these tests we conclude that the correlation between size and the other covariates is 0 with 5% significance.
+There we cannot reject the null hypothesis at 5% significance for all tests except between size and er and between size and nodes. Besides er and number of nodes, from these tests we conclude that the correlation between size and the other covariates are 0 with 5% significance.
 
 ```{r}
 # Look at correlation test for size with each covariate including pgr and log(pgr+1)
@@ -466,6 +496,43 @@ cor.test(breast_cancer$size, breast_cancer$pgr)
 cor.test(breast_cancer$size, log(breast_cancer$pgr + 1))
 cor.test(breast_cancer$size, breast_cancer$er)
 cor.test(breast_cancer$size, breast_cancer$nodes)
+```
+
+**Test model assumptions**
+
+[Shapiro test:]{.underline}
+
+$H_0$ : Residuals are normally distributed.
+
+$H_A$ : Residuals are not normally distributed.
+
+For the final model and the model at 5% significance, we reject the null hypothesis since the respective p-values are 3.12e-6 and less than 2.2e-16. QQ plot shows significant deviation from normality at the tails.
+
+[Breusch-Pagan Test:]{.underline}
+
+$H_0$ : Residuals have constant variance.
+
+$H_A$ : Residuals do not have constant variance.
+
+The p-value for the BP test at 5% significance for fit_final is 0.35, so we cannot reject the null hypothesis. For the intercept only model we have a p-value of 2.2e-16 which means we reject the null hypothesis at 5%.
+
+```{r}
+# Models with quantitative variables only for the full and final fit
+fit_quant_only = lm(size ~ age + nodes + er + log(pgr+1), data = breast_cancer)
+fit_quantfinal_only = lm(log(size) ~ nodes + er, data = breast_cancer)
+
+# Shapiro test for normality of residuals
+shapiro.test(residuals(fit_quant_only))
+shapiro.test(residuals(fit_quantfinal_only))
+shapiro.test(residuals(fit_intercept))
+
+# QQ plot for visual confirmation of residual deviation from normality 
+plot(fit_quantfinal_only, which = 2)
+
+# Breusch-Pagan Test
+library(lmtest)
+bptest(fit_final)
+bptest(fit_nodes)
 ```
 
 ## 5. Principal Component Analysis
@@ -499,5 +566,14 @@ title(main = "Principal Component 1 vs 2")
 # Plot component 3 vs component 4
 plot(pca$x[,3], pca$x[,4], xlab = "PC3", ylab = "PC4")
 title(main = "Principal Component 3 vs 4")
+
+# 3D plot for PC1, PC2 and PC3
+library(scatterplot3d)
+scatterplot3d(pca$x[,1], pca$x[,2], pca$x[,3],
+              xlab = "PC1", 
+              ylab = "PC2", 
+              zlab = "PC3",
+              main = "3D plot of PC1, PC2 and PC3")
+
 
 ```
