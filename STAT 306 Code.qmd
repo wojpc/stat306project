@@ -472,11 +472,14 @@ $H_0$ : Mean tumor size does not differ between groups.
 
 $H_A$ : At least one group's mean tumor size is different.
 
-At 5% significance we cannot reject the null hypothesis for tumor size and menopause status since the p-value is 0.27. However for grade, we reject the null hypothesis at 5% since the p-value is 0.024.
+At 5% significance we cannot reject the null hypothesis for tumor size and menopause status since the p-value is 0.27. However for grade, we reject the null hypothesis at 5% since the p-value is 0.024. Tukey test followed up the significant result for the size and comparison between grades which showed that grade 1 and grade 3 mean tumor size is significantly different at 5% significance while the difference between grade 1 vs grade 2 and grade 2 vs grade 3 was not significant at 5%.
 
 ```{r}
 anova(lm(size ~ meno, data = breast_cancer))
 anova(lm(size ~ grade, data = breast_cancer))
+anova_sizegrade <- aov(size ~ grade, data = breast_cancer)
+TukeyHSD(anova_sizegrade)
+
 ```
 
 **Correlation Testing**
@@ -496,6 +499,7 @@ cor.test(breast_cancer$size, breast_cancer$pgr)
 cor.test(breast_cancer$size, log(breast_cancer$pgr + 1))
 cor.test(breast_cancer$size, breast_cancer$er)
 cor.test(breast_cancer$size, breast_cancer$nodes)
+cor.test(breast_cancer$pgr, breast_cancer$age)
 ```
 
 **Test model assumptions**
@@ -514,7 +518,7 @@ $H_0$ : Residuals have constant variance.
 
 $H_A$ : Residuals do not have constant variance.
 
-The p-value for the BP test at 5% significance for fit_final is 0.35, so we cannot reject the null hypothesis. For the intercept only model we have a p-value of 2.2e-16 which means we reject the null hypothesis at 5%.
+The p-value for the BP test at 5% significance for fit_final is 0.35, so we cannot reject the null hypothesis for our final fit. For the intercept only model we have a p-value of 2.2e-16 which means we reject the null hypothesis at 5%.
 
 ```{r}
 # Models with quantitative variables only for the full and final fit
@@ -541,9 +545,10 @@ By finding the eigenvalues and eigenvectors of the covariance matrix for our qua
 
 ```{r}
 # Keep only qunatitative variables
-data_quant <- read.csv("data/gbsg.csv") |>
+data_for_pca <- read.csv("data/gbsg.csv") 
+data_quant <- data_for_pca |>
   select(c(-X, -pid, , -hormon, -meno, -grade, -rfstime, -status))
-str(read.csv("data/gbsg.csv"))
+
 # prcomp() will generate our principal components, scale and center the data
 pca <- prcomp(data_quant, scale. = TRUE, center = TRUE)
 summary(pca)
@@ -569,11 +574,19 @@ title(main = "Principal Component 3 vs 4")
 
 # 3D plot for PC1, PC2 and PC3
 library(scatterplot3d)
+colors <- c("#76DD78", "#FFA001")
+colors <- colors[as.numeric(factor(data_for_pca$status))]
+
 scatterplot3d(pca$x[,1], pca$x[,2], pca$x[,3],
+              color = colors,
               xlab = "PC1", 
               ylab = "PC2", 
               zlab = "PC3",
               main = "3D plot of PC1, PC2 and PC3")
 
+legend("topright",
+       legend = c("Benign", "Cancerous"),
+       col = c("#76DD78", "#FFA001"),
+       pch = 16)
 
 ```
